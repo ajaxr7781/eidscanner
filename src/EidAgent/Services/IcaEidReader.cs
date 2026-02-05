@@ -22,9 +22,12 @@ public sealed class IcaEidReader : IEidReader
     {
         cancellationToken.ThrowIfCancellationRequested();
 
+<<<<<<< codex/create-.net-8-emirates-id-agent-service-cyqy04
         var toolkitInitialized = false;
         var cardConnected = false;
 
+=======
+>>>>>>> main
         try
         {
             _sdkClient.Initialize(new IcaInitializationOptions
@@ -32,7 +35,10 @@ public sealed class IcaEidReader : IEidReader
                 ProcessMode = _agentOptions.IcaProcessMode,
                 ConfigFilePath = _agentOptions.IcaConfigPath
             });
+<<<<<<< codex/create-.net-8-emirates-id-agent-service-cyqy04
             toolkitInitialized = true;
+=======
+>>>>>>> main
 
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -45,7 +51,10 @@ public sealed class IcaEidReader : IEidReader
             var readerName = ResolveReaderName(readers, _agentOptions.IcaPreferredReaderName);
             _sdkClient.SelectReader(readerName);
             _sdkClient.ConnectCard();
+<<<<<<< codex/create-.net-8-emirates-id-agent-service-cyqy04
             cardConnected = true;
+=======
+>>>>>>> main
 
             var status = _sdkClient.GetReaderStatus();
             if (status != IcaReaderStatus.Ready)
@@ -56,8 +65,12 @@ public sealed class IcaEidReader : IEidReader
             cancellationToken.ThrowIfCancellationRequested();
             var cardData = _sdkClient.ReadCard();
 
+<<<<<<< codex/create-.net-8-emirates-id-agent-service-cyqy04
             if (_agentOptions.ValidateSdkResponseIntegrity &&
                 !string.IsNullOrWhiteSpace(cardData.RawSignedResponseXml) &&
+=======
+            if (!string.IsNullOrWhiteSpace(cardData.RawSignedResponseXml) &&
+>>>>>>> main
                 !string.IsNullOrWhiteSpace(cardData.RequestId))
             {
                 var hasValidRequest = IcaSdkIntegrationHelpers.CompareRequestId(
@@ -89,6 +102,7 @@ public sealed class IcaEidReader : IEidReader
 
             return Task.FromResult(response);
         }
+<<<<<<< codex/create-.net-8-emirates-id-agent-service-cyqy04
         catch (DllNotFoundException ex)
         {
             throw new EidAgentException(
@@ -96,10 +110,13 @@ public sealed class IcaEidReader : IEidReader
                 "ICA SDK native library 'ica_sdk.dll' was not found. Ensure vendor SDK DLLs are deployed with the service.",
                 ex);
         }
+=======
+>>>>>>> main
         finally
         {
             try
             {
+<<<<<<< codex/create-.net-8-emirates-id-agent-service-cyqy04
                 if (cardConnected)
                 {
                     _sdkClient.DisconnectCard();
@@ -109,6 +126,10 @@ public sealed class IcaEidReader : IEidReader
                 {
                     _sdkClient.Cleanup();
                 }
+=======
+                _sdkClient.DisconnectCard();
+                _sdkClient.Cleanup();
+>>>>>>> main
             }
             catch (Exception ex)
             {

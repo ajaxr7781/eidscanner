@@ -69,7 +69,7 @@ public sealed class NativeIcaSdkClient : IcaSdkClient
     public void Initialize(IcaInitializationOptions options)
     {
         var processMode = options.ProcessMode ? 1 : 0;
-        var result = ExecuteNativeCall(() => NativeIcaInterop.Initialize(processMode, options.ConfigFilePath ?? string.Empty));
+        var result = NativeIcaInterop.Initialize(processMode, options.ConfigFilePath ?? string.Empty);
         EnsureSuccess(result, "ICA toolkit initialization failed.");
     }
 
@@ -77,7 +77,7 @@ public sealed class NativeIcaSdkClient : IcaSdkClient
     {
         const int bufferLength = 8 * 1024;
         var buffer = new StringBuilder(bufferLength);
-        var result = ExecuteNativeCall(() => NativeIcaInterop.ListReaders(buffer, bufferLength));
+        var result = NativeIcaInterop.ListReaders(buffer, bufferLength);
         EnsureSuccess(result, "Unable to list ICA readers.");
 
         var readers = buffer.ToString()
@@ -88,19 +88,19 @@ public sealed class NativeIcaSdkClient : IcaSdkClient
 
     public void SelectReader(string readerName)
     {
-        var result = ExecuteNativeCall(() => NativeIcaInterop.SelectReader(readerName));
+        var result = NativeIcaInterop.SelectReader(readerName);
         EnsureSuccess(result, "Unable to select ICA reader.");
     }
 
     public void ConnectCard()
     {
-        var result = ExecuteNativeCall(() => NativeIcaInterop.ConnectCard());
+        var result = NativeIcaInterop.ConnectCard();
         EnsureSuccess(result, "Failed to connect to Emirates ID card.");
     }
 
     public IcaReaderStatus GetReaderStatus()
     {
-        var result = ExecuteNativeCall(() => NativeIcaInterop.GetReaderStatus());
+        var result = NativeIcaInterop.GetReaderStatus();
         return result switch
         {
             0 => IcaReaderStatus.Ready,
@@ -119,7 +119,7 @@ public sealed class NativeIcaSdkClient : IcaSdkClient
     {
         const int bufferLength = 64 * 1024;
         var xmlBuffer = new StringBuilder(bufferLength);
-        var result = ExecuteNativeCall(() => NativeIcaInterop.ReadPublicData(xmlBuffer, bufferLength));
+        var result = NativeIcaInterop.ReadPublicData(xmlBuffer, bufferLength);
         EnsureSuccess(result, "Failed to read public card data from ICA SDK.");
 
         return IcaResponseParser.ParsePublicDataXml(xmlBuffer.ToString());
@@ -128,7 +128,7 @@ public sealed class NativeIcaSdkClient : IcaSdkClient
     public byte[]? GetPhoto()
     {
         var length = 0;
-        var probeResult = ExecuteNativeCall(() => NativeIcaInterop.GetPhoto(IntPtr.Zero, ref length));
+        var probeResult = NativeIcaInterop.GetPhoto(IntPtr.Zero, ref length);
         if (probeResult != 0 || length <= 0)
         {
             return null;
@@ -137,7 +137,7 @@ public sealed class NativeIcaSdkClient : IcaSdkClient
         var buffer = Marshal.AllocHGlobal(length);
         try
         {
-            var readResult = ExecuteNativeCall(() => NativeIcaInterop.GetPhoto(buffer, ref length));
+            var readResult = NativeIcaInterop.GetPhoto(buffer, ref length);
             EnsureSuccess(readResult, "Failed to read card photo.");
 
             var output = new byte[length];
@@ -152,7 +152,7 @@ public sealed class NativeIcaSdkClient : IcaSdkClient
 
     public void DisconnectCard()
     {
-        var result = ExecuteNativeCall(() => NativeIcaInterop.DisconnectCard());
+        var result = NativeIcaInterop.DisconnectCard();
         if (result != 0)
         {
             throw new EidAgentException(EidAgentErrorCode.InternalError, "Failed to disconnect card session.");
@@ -161,40 +161,10 @@ public sealed class NativeIcaSdkClient : IcaSdkClient
 
     public void Cleanup()
     {
-        var result = ExecuteNativeCall(() => NativeIcaInterop.Cleanup());
+        var result = NativeIcaInterop.Cleanup();
         if (result != 0)
         {
             throw new EidAgentException(EidAgentErrorCode.InternalError, "Failed to cleanup ICA toolkit session.");
-        }
-    }
-
-
-    private static int ExecuteNativeCall(Func<int> nativeCall)
-    {
-        try
-        {
-            return nativeCall();
-        }
-        catch (DllNotFoundException ex)
-        {
-            throw new EidAgentException(
-                EidAgentErrorCode.ReaderNotFound,
-                "ICA SDK native library 'ica_sdk.dll' was not found. Ensure vendor SDK DLLs are deployed with the service.",
-                ex);
-        }
-        catch (EntryPointNotFoundException ex)
-        {
-            throw new EidAgentException(
-                EidAgentErrorCode.InternalError,
-                "ICA SDK entry point was not found. Verify SDK DLL version compatibility.",
-                ex);
-        }
-        catch (BadImageFormatException ex)
-        {
-            throw new EidAgentException(
-                EidAgentErrorCode.InternalError,
-                "ICA SDK native library architecture mismatch. Use SDK binaries that match the published runtime (x64).",
-                ex);
         }
     }
 
