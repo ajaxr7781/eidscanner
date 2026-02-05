@@ -363,3 +363,9 @@ C:\Users\ajay\OneDrive - Key Information Technology\Documents\Development\KeyVMS
 C:\Users\ajay\OneDrive - Key Information Technology\Documents\Development\KeyVMS\eidaplugin\eidscanner\src\EidAgent\obj\Release\net8.0\win-x64\EidAgent.pdb
 C:\Users\ajay\OneDrive - Key Information Technology\Documents\Development\KeyVMS\eidaplugin\eidscanner\src\EidAgent\obj\Release\net8.0\win-x64\EidAgent.genruntimeconfig.cache
 C:\Users\ajay\OneDrive - Key Information Technology\Documents\Development\KeyVMS\eidaplugin\eidscanner\src\EidAgent\obj\Release\net8.0\win-x64\ref\EidAgent.dll
+C:\Users\ajay\OneDrive - Key Information Technology\Documents\Development\KeyVMS\eidaplugin\eidscanner\src\EidAgent\bin\Release\net8.0\win-x64\External\ICA\EIDAToolkit.dll
+C:\Users\ajay\OneDrive - Key Information Technology\Documents\Development\KeyVMS\eidaplugin\eidscanner\src\EidAgent\bin\Release\net8.0\win-x64\External\ICA\IDCardToolkit.dll
+C:\Users\ajay\OneDrive - Key Information Technology\Documents\Development\KeyVMS\eidaplugin\eidscanner\src\EidAgent\bin\Release\net8.0\win-x64\External\ICA\IDCardToolkit.XML
+C:\Users\ajay\OneDrive - Key Information Technology\Documents\Development\KeyVMS\eidaplugin\eidscanner\src\EidAgent\bin\Release\net8.0\win-x64\IDCardToolkit.dll
+C:\Users\ajay\OneDrive - Key Information Technology\Documents\Development\KeyVMS\eidaplugin\eidscanner\src\EidAgent\bin\Release\net8.0\win-x64\IDCardToolkit.xml
+C:\Users\ajay\OneDrive - Key Information Technology\Documents\Development\KeyVMS\eidaplugin\eidscanner\src\EidAgent\bin\Release\net8.0\win-x64\PCSC.dll

@@ -629,6 +629,19 @@
           "build/Microsoft.NET.ILLink.Tasks.props": {}
         }
       },
+      "PCSC/7.0.1": {
+        "type": "package",
+        "compile": {
+          "lib/net8.0/PCSC.dll": {
+            "related": ".pdb"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/PCSC.dll": {
+            "related": ".pdb"
+          }
+        }
+      },
       "Serilog/4.0.0": {
         "type": "package",
         "compile": {
@@ -1524,6 +1537,19 @@
         "type": "package",
         "build": {
           "build/Microsoft.NET.ILLink.Tasks.props": {}
+        }
+      },
+      "PCSC/7.0.1": {
+        "type": "package",
+        "compile": {
+          "lib/net8.0/PCSC.dll": {
+            "related": ".pdb"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/PCSC.dll": {
+            "related": ".pdb"
+          }
         }
       },
       "Serilog/4.0.0": {
@@ -2779,6 +2805,26 @@
         "useSharedDesignerContext.txt"
       ]
     },
+    "PCSC/7.0.1": {
+      "sha512": "J7LdZ4ICGeFBpIQA2y2TrsUM0juWU3lvNUY6Em164F33hlLmsnnDmqVSa4fwp9sGCfKawRK3FkSFh7GYnXt7bA==",
+      "type": "package",
+      "path": "pcsc/7.0.1",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "COPYING.txt",
+        "README.md",
+        "lib/net8.0/PCSC.dll",
+        "lib/net8.0/PCSC.pdb",
+        "lib/netstandard2.0/PCSC.dll",
+        "lib/netstandard2.0/PCSC.pdb",
+        "lib/netstandard2.1/PCSC.dll",
+        "lib/netstandard2.1/PCSC.pdb",
+        "pcsc-sharp.png",
+        "pcsc.7.0.1.nupkg.sha512",
+        "pcsc.nuspec"
+      ]
+    },
     "Serilog/4.0.0": {
       "sha512": "2jDkUrSh5EofOp7Lx5Zgy0EB+7hXjjxE2ktTb1WVQmU00lDACR2TdROGKU0K1pDTBSJBN1PqgYpgOZF8mL7NJw==",
       "type": "package",
@@ -3210,6 +3256,7 @@
     "net8.0": [
       "Microsoft.Extensions.Hosting.WindowsServices >= 8.0.0",
       "Microsoft.NET.ILLink.Tasks >= 8.0.14",
+      "PCSC >= 7.0.1",
       "Serilog.AspNetCore >= 8.0.0",
       "Serilog.Settings.Configuration >= 8.0.0",
       "Serilog.Sinks.File >= 6.0.0"
@@ -3275,6 +3322,10 @@
             "target": "Package",
             "version": "[8.0.14, )",
             "autoReferenced": true
+          },
+          "PCSC": {
+            "target": "Package",
+            "version": "[7.0.1, )"
           },
           "Serilog.AspNetCore": {
             "target": "Package",

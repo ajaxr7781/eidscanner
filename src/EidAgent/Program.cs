@@ -1,11 +1,15 @@
 using System.Collections.Concurrent;
 using System.Net;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using Microsoft.AspNetCore.Http;
 using Serilog;
 using EidAgent.Options;
 using EidAgent.Services;
 using EidAgent.Exceptions;
 using EidAgent.Models;
+using AE.EmiratesId.IdCard;
+using AE.EmiratesId.IdCard.DataModels;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -62,11 +66,128 @@ bool IsAuthorized(HttpRequest req)
 
 string ClientKey(HttpContext ctx)
 {
-    // Usually 127.0.0.1 for localhost calls; OK for this agent
     return ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 }
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok", ts = DateTimeOffset.UtcNow }));
+// ---------- SDK / Native load helpers ----------
+var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
+var pluginsDir = Path.Combine(exeDir, "plugins");
+
+// Optional: vendor SDK root (only used as fallback search path)
+var sdkRoot = @"C:\ProgramData\KeyVMS\id-card-toolkit-windows-dotnet-sdk-v3.0.2-r3\";
+var nativeDllName = "EIDAToolkit.dll";
+var nativeDllPath = Path.Combine(exeDir, nativeDllName);
+
+// Configure DLL search paths early (best effort)
+try
+{
+    NativeDllSearch.AddSearchPath(exeDir);
+    if (Directory.Exists(pluginsDir)) NativeDllSearch.AddSearchPath(pluginsDir);
+
+    if (Directory.Exists(sdkRoot))
+    {
+        NativeDllSearch.AddSearchPath(sdkRoot);
+        var sdkPlugins = Path.Combine(sdkRoot, "plugins");
+        if (Directory.Exists(sdkPlugins)) NativeDllSearch.AddSearchPath(sdkPlugins);
+    }
+}
+catch (Exception ex)
+{
+    Log.Warning(ex, "Failed configuring native DLL search paths");
+}
+// ---------------------------------------------
+
+app.MapGet("/health", () => Results.Ok(new { status = "ok", ts = DateTimeOffset.UtcNow.ToString("o") }));
+
+// SDK check endpoint (protected) - proves:
+// 1) plugins folder presence
+// 2) native EIDAToolkit.dll load
+// 3) managed Toolkit call works (GetDataProtectionKey)
+app.MapGet("/sdk-check", (HttpContext ctx) =>
+{
+    if (!IsAuthorized(ctx.Request))
+        return Results.Unauthorized();
+
+    var report = new Dictionary<string, object?>();
+    var errors = new List<string>();
+
+    report["ts"] = DateTimeOffset.UtcNow.ToString("o");
+    report["processPath"] = Environment.ProcessPath;
+    report["baseDir"] = AppContext.BaseDirectory;
+    report["exeDir"] = exeDir;
+    report["os"] = RuntimeInformation.OSDescription;
+    report["arch"] = RuntimeInformation.ProcessArchitecture.ToString();
+
+    report["pluginsDir"] = pluginsDir;
+    report["pluginsDirExists"] = Directory.Exists(pluginsDir);
+
+    try
+    {
+        if (Directory.Exists(pluginsDir))
+            report["pluginsCount"] = Directory.EnumerateFiles(pluginsDir, "*", SearchOption.AllDirectories).Count();
+    }
+    catch (Exception ex)
+    {
+        errors.Add("Unable to enumerate plugins directory: " + ex.Message);
+    }
+
+    report["nativeDllName"] = nativeDllName;
+    report["nativeDllPath"] = nativeDllPath;
+    report["nativeDllExistsNextToExe"] = File.Exists(nativeDllPath);
+
+    // Native load test
+    try
+    {
+        IntPtr handle;
+        if (File.Exists(nativeDllPath))
+        {
+            handle = NativeLibrary.Load(nativeDllPath);
+            report["nativeLoad"] = "Loaded by absolute path (next to EXE)";
+        }
+        else
+        {
+            handle = NativeLibrary.Load(nativeDllName);
+            report["nativeLoad"] = "Loaded by name via DLL search paths";
+        }
+
+        report["nativeHandleNonZero"] = handle != IntPtr.Zero;
+    }
+    catch (Exception ex)
+    {
+        errors.Add("NativeLibrary.Load failed for EIDAToolkit.dll: " + ex.Message);
+        report["nativeLoad"] = "FAILED";
+        report["nativeHandleNonZero"] = false;
+    }
+
+ // Managed toolkit call test (real call, correct constructor)
+try
+{
+    var inProcessMode = true; // local agent: run in-process
+    var pluginPathToUse = Directory.Exists(pluginsDir) ? pluginsDir : Path.Combine(sdkRoot, "plugins");
+
+    report["toolkitInProcessMode"] = inProcessMode;
+    report["toolkitPluginsPath"] = pluginPathToUse;
+    report["toolkitPluginsPathExists"] = Directory.Exists(pluginPathToUse);
+
+    var toolkit = new Toolkit(inProcessMode, pluginPathToUse);
+    DataProtectionKey key = toolkit.GetDataProtectionKey();
+
+    report["managedToolkit"] = "AE.EmiratesId.IdCard.Toolkit";
+    report["managedCall"] = "GetDataProtectionKey() OK";
+    report["publicKeyLen"] = key?.PublicKey?.Length ?? 0;
+}
+catch (Exception ex)
+{
+    errors.Add("Managed Toolkit.GetDataProtectionKey() failed: " + ex.Message);
+    report["managedCall"] = "FAILED";
+}
+
+
+    report["errors"] = errors;
+    report["ok"] = errors.Count == 0;
+
+    return Results.Json(report);
+});
 
 app.MapGet("/config", (HttpContext ctx) =>
 {
@@ -123,6 +244,42 @@ static string MaskDigitsLast4(string input)
     var digits = new string((input ?? "").Where(char.IsDigit).ToArray());
     if (digits.Length <= 4) return "****" + digits;
     return "****" + digits[^4..];
+}
+
+// ---------------- Native DLL search helper ----------------
+static class NativeDllSearch
+{
+    private const uint LOAD_LIBRARY_SEARCH_DEFAULT_DIRS = 0x00001000;
+    private const uint LOAD_LIBRARY_SEARCH_USER_DIRS = 0x00000400;
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool SetDefaultDllDirectories(uint directoryFlags);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr AddDllDirectory([MarshalAs(UnmanagedType.LPWStr)] string newDirectory);
+
+    private static bool _initialized;
+
+    public static void AddSearchPath(string path)
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+            return;
+
+        if (!_initialized)
+        {
+            if (!SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_USER_DIRS))
+                throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+
+            _initialized = true;
+        }
+
+        var cookie = AddDllDirectory(path);
+        if (cookie == IntPtr.Zero)
+            throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+    }
 }
 
 // ---------------- Rate limiter ----------------
