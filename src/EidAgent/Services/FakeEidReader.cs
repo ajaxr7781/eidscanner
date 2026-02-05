@@ -2,21 +2,21 @@ using EidAgent.Models;
 
 namespace EidAgent.Services;
 
-public sealed class FakeEidReader : IEidReader
+public class FakeEidReader : IEidReader
 {
-    public Task<EidReadResponse> ReadAsync(CancellationToken cancellationToken)
+    public Task<EidReadResponse> ReadAsync(CancellationToken ct)
     {
-        var response = new EidReadResponse
-        {
-            EidNumberMasked = "784-****-****-1234",
-            FullNameEn = "Amal Al Noor",
-            Nationality = "UAE",
-            Dob = new DateOnly(1990, 6, 15),
-            Gender = "F",
-            Expiry = new DateOnly(2030, 12, 31),
-            PhotoBase64 = null
-        };
+        // Unmasked sample; API layer will mask to last-4-digits
+        var eidNumber = "784-1988-1234567-1";
 
-        return Task.FromResult(response);
+        return Task.FromResult(new EidReadResponse(
+            EidNumberMasked: eidNumber,
+            FullNameEn: "AJAY RAMACHANDRAN",
+            Nationality: "INDIA",
+            Dob: "1977-01-01",
+            Gender: "M",
+            Expiry: "2032-12-31",
+            PhotoBase64: null
+        ));
     }
 }

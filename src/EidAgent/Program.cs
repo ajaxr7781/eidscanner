@@ -1,102 +1,152 @@
-using EidAgent.Exceptions;
+using System.Collections.Concurrent;
+using System.Net;
+using Microsoft.AspNetCore.Http;
+using Serilog;
 using EidAgent.Options;
 using EidAgent.Services;
-using Microsoft.Extensions.Options;
-using Serilog;
-using Serilog.Events;
+using EidAgent.Exceptions;
+using EidAgent.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Host.UseWindowsService(options =>
+// Run as Windows service
+builder.Host.UseWindowsService(o => o.ServiceName = "KeyVMS Emirates ID Agent");
+
+// Bind options
+builder.Services.Configure<AgentOptions>(builder.Configuration.GetSection("Agent"));
+var opts = builder.Configuration.GetSection("Agent").Get<AgentOptions>() ?? new AgentOptions();
+
+// Serilog (file under app base dir)
+var logDir = Path.Combine(AppContext.BaseDirectory, "logs");
+Directory.CreateDirectory(logDir);
+
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .WriteTo.File(Path.Combine(logDir, "eid-agent-.log"), rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+
+// CORS
+builder.Services.AddCors(p =>
 {
-    options.ServiceName = "KeyVMS Emirates ID Agent";
+    p.AddPolicy("cors", policy =>
+    {
+        if (opts.AllowedOrigins is { Length: > 0 })
+            policy.WithOrigins(opts.AllowedOrigins).AllowAnyHeader().AllowAnyMethod();
+        else
+            policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+    });
 });
 
-builder.Host.UseSerilog((context, services, loggerConfiguration) =>
-{
-    loggerConfiguration
-        .ReadFrom.Configuration(context.Configuration)
-        .ReadFrom.Services(services)
-        .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-        .Enrich.FromLogContext()
-        .WriteTo.File(
-            path: "logs\\eid-agent-.log",
-            rollingInterval: RollingInterval.Day,
-            retainedFileCountLimit: 14)
-        .WriteTo.EventLog(
-            source: "KeyVMS.EidAgent",
-            manageEventSource: true);
-});
-
-builder.Services.Configure<AgentOptions>(builder.Configuration.GetSection(AgentOptions.SectionName));
+// Reader DI (swap later to IcaEidReader)
 builder.Services.AddSingleton<IEidReader, FakeEidReader>();
-
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AgentCors", policy =>
-    {
-        var origins = builder.Configuration
-            .GetSection("Agent:AllowedOrigins")
-            .Get<string[]>() ?? Array.Empty<string>();
-
-        if (origins.Length > 0)
-        {
-            policy.WithOrigins(origins)
-                .AllowAnyHeader()
-                .AllowAnyMethod();
-        }
-    });
-});
-
-builder.Services.AddHostedService<Worker>();
-
-var port = builder.Configuration.GetValue<int?>("Agent:Port") ?? 9443;
-
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.ListenLocalhost(port, listenOptions =>
-    {
-        listenOptions.UseHttps();
-    });
-});
 
 var app = builder.Build();
 
-app.UseSerilogRequestLogging();
-app.UseCors("AgentCors");
+app.UseCors("cors");
 
-app.MapGet("/health", () => Results.Ok(new
-{
-    status = "ok",
-    ts = DateTimeOffset.UtcNow
-}));
+// Listen on HTTPS localhost only
+app.Urls.Clear();
+app.Urls.Add($"https://127.0.0.1:{opts.Port}");
 
-app.MapPost("/read-eid", async (HttpRequest request, IEidReader reader, IOptions<AgentOptions> options) =>
+// --- Simple in-memory rate limiter: 5 per minute per client IP
+var limiter = new SlidingWindowRateLimiter(maxPerWindow: 5, window: TimeSpan.FromMinutes(1));
+
+bool IsAuthorized(HttpRequest req)
 {
-    var expectedSecret = options.Value.SharedSecret;
-    if (string.IsNullOrWhiteSpace(expectedSecret) ||
-        !request.Headers.TryGetValue("X-Shared-Secret", out var providedSecret) ||
-        !string.Equals(providedSecret.ToString(), expectedSecret, StringComparison.Ordinal))
+    if (!req.Headers.TryGetValue("X-Shared-Secret", out var s)) return false;
+    return !string.IsNullOrWhiteSpace(opts.SharedSecret) &&
+           string.Equals(s.ToString(), opts.SharedSecret, StringComparison.Ordinal);
+}
+
+string ClientKey(HttpContext ctx)
+{
+    // Usually 127.0.0.1 for localhost calls; OK for this agent
+    return ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+}
+
+app.MapGet("/health", () => Results.Ok(new { status = "ok", ts = DateTimeOffset.UtcNow }));
+
+app.MapGet("/config", (HttpContext ctx) =>
+{
+    if (!IsAuthorized(ctx.Request))
+        return Results.Unauthorized();
+
+    return Results.Ok(new
     {
-        return Results.Json(new { error = "unauthorized" }, statusCode: StatusCodes.Status401Unauthorized);
-    }
+        port = opts.Port,
+        allowedOrigins = opts.AllowedOrigins ?? Array.Empty<string>()
+    });
+});
+
+app.MapPost("/read-eid", async (HttpContext ctx, IEidReader reader) =>
+{
+    if (!IsAuthorized(ctx.Request))
+        return Results.Unauthorized();
+
+    var key = ClientKey(ctx);
+    if (!limiter.Allow(key))
+        return Results.StatusCode((int)HttpStatusCode.TooManyRequests);
+
+    using var cts = CancellationTokenSource.CreateLinkedTokenSource(ctx.RequestAborted);
+    cts.CancelAfter(TimeSpan.FromSeconds(15));
 
     try
     {
-        var result = await reader.ReadAsync(request.HttpContext.RequestAborted);
-        return Results.Ok(result);
+        var resp = await reader.ReadAsync(cts.Token);
+
+        // Ensure masking rule: digits only, show last 4
+        resp = resp with { EidNumberMasked = MaskDigitsLast4(resp.EidNumberMasked) };
+
+        return Results.Ok(resp);
+    }
+    catch (OperationCanceledException)
+    {
+        return Results.BadRequest(new { error = "timeout" });
     }
     catch (EidAgentException ex)
     {
-        var statusCode = ex.ErrorCode == EidAgentErrorCode.InternalError
-            ? StatusCodes.Status500InternalServerError
-            : StatusCodes.Status400BadRequest;
-        return Results.Json(new { error = ex.ErrorCodeValue }, statusCode);
+        return Results.BadRequest(new { error = ex.Code, message = ex.Message });
     }
-    catch (Exception)
+    catch (Exception ex)
     {
-        return Results.Json(new { error = "internal_error" }, StatusCodes.Status500InternalServerError);
+        Log.Error(ex, "Unhandled /read-eid error");
+        return Results.StatusCode(500);
     }
 });
 
 app.Run();
+
+static string MaskDigitsLast4(string input)
+{
+    var digits = new string((input ?? "").Where(char.IsDigit).ToArray());
+    if (digits.Length <= 4) return "****" + digits;
+    return "****" + digits[^4..];
+}
+
+// ---------------- Rate limiter ----------------
+sealed class SlidingWindowRateLimiter
+{
+    private readonly int _max;
+    private readonly TimeSpan _window;
+    private readonly ConcurrentDictionary<string, ConcurrentQueue<DateTimeOffset>> _hits = new();
+
+    public SlidingWindowRateLimiter(int maxPerWindow, TimeSpan window)
+    {
+        _max = maxPerWindow;
+        _window = window;
+    }
+
+    public bool Allow(string key)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var q = _hits.GetOrAdd(key, _ => new ConcurrentQueue<DateTimeOffset>());
+        q.Enqueue(now);
+
+        while (q.TryPeek(out var ts) && now - ts > _window)
+            q.TryDequeue(out _);
+
+        return q.Count <= _max;
+    }
+}

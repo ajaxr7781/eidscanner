@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("EidAgent")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+65a7d1344ec5d4f76772f5c1cb19da9283ea6c20")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f00e0779b3c5a95c0f92306eda759d8ed519da9d")]
 [assembly: System.Reflection.AssemblyProductAttribute("EidAgent")]
 [assembly: System.Reflection.AssemblyTitleAttribute("EidAgent")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

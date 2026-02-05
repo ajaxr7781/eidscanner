@@ -1,34 +1,23 @@
 namespace EidAgent.Exceptions;
 
-public enum EidAgentErrorCode
+public class EidAgentException : Exception
 {
-    CardNotPresent,
-    ReaderNotFound,
-    Timeout,
-    InternalError
-}
+    public string Code { get; }
 
-public sealed class EidAgentException : Exception
-{
-    public EidAgentException(EidAgentErrorCode errorCode, string message)
-        : base(message)
+    public EidAgentException(string code, string message) : base(message)
     {
-        ErrorCode = errorCode;
+        Code = code;
     }
 
-    public EidAgentException(EidAgentErrorCode errorCode, string message, Exception innerException)
-        : base(message, innerException)
-    {
-        ErrorCode = errorCode;
-    }
+    public static EidAgentException CardNotPresent() =>
+        new("card_not_present", "No Emirates ID detected on reader.");
 
-    public EidAgentErrorCode ErrorCode { get; }
+    public static EidAgentException ReaderNotFound() =>
+        new("reader_not_found", "HID reader not detected.");
 
-    public string ErrorCodeValue => ErrorCode switch
-    {
-        EidAgentErrorCode.CardNotPresent => "card_not_present",
-        EidAgentErrorCode.ReaderNotFound => "reader_not_found",
-        EidAgentErrorCode.Timeout => "timeout",
-        _ => "internal_error"
-    };
+    public static EidAgentException Timeout() =>
+        new("timeout", "Read operation timed out.");
+
+    public static EidAgentException InternalError(string message = "Internal error") =>
+        new("internal_error", message);
 }

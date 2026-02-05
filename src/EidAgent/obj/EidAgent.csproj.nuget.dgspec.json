@@ -51,6 +51,10 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "Microsoft.Extensions.Hosting.WindowsServices": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
             "Microsoft.NET.ILLink.Tasks": {
               "suppressParent": "All",
               "target": "Package",
@@ -61,13 +65,13 @@
               "target": "Package",
               "version": "[8.0.0, )"
             },
-            "Serilog.Sinks.EventLog": {
+            "Serilog.Settings.Configuration": {
               "target": "Package",
-              "version": "[3.0.2, )"
+              "version": "[8.0.0, )"
             },
             "Serilog.Sinks.File": {
               "target": "Package",
-              "version": "[5.0.0, )"
+              "version": "[6.0.0, )"
             }
           },
           "imports": [

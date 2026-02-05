@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "6qpjtzO57vtzxB8LxU2ElkkveOHuhmYrY0121AIzVDc=",
+  "Source": "EidAgent",
+  "BasePath": "_content/EidAgent",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}

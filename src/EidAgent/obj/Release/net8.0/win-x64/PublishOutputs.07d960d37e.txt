@@ -1,0 +1,3 @@
+C:\Users\ajay\OneDrive - Key Information Technology\Documents\Development\KeyVMS\eidaplugin\eidscanner\src\EidAgent\bin\Release\net8.0\win-x64\publish\appsettings.json
+C:\Users\ajay\OneDrive - Key Information Technology\Documents\Development\KeyVMS\eidaplugin\eidscanner\src\EidAgent\bin\Release\net8.0\win-x64\publish\EidAgent.pdb
+C:\Users\ajay\OneDrive - Key Information Technology\Documents\Development\KeyVMS\eidaplugin\eidscanner\src\EidAgent\bin\Release\net8.0\win-x64\publish\EidAgent.exe

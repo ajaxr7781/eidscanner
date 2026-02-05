@@ -3,12 +3,11 @@ using EidAgent.Models;
 
 namespace EidAgent.Services;
 
-public sealed class IcaEidReader : IEidReader
+public class IcaEidReader : IEidReader
 {
-    public Task<EidReadResponse> ReadAsync(CancellationToken cancellationToken)
+    public Task<EidReadResponse> ReadAsync(CancellationToken ct)
     {
-        throw new EidAgentException(
-            EidAgentErrorCode.InternalError,
-            "ICA SDK integration is not implemented. Replace this stub with SDK calls.");
+        // TODO: implement ICA SDK read here.
+        throw EidAgentException.ReaderNotFound();
     }
 }
