@@ -1,0 +1,4 @@
+C:\ProgramData\KeyVMS\eidscanner\src\EidAgent\bin\Release\net8.0\win-x64\publish\appsettings.json
+C:\ProgramData\KeyVMS\eidscanner\src\EidAgent\bin\Release\net8.0\win-x64\publish\EidAgent.pdb
+C:\ProgramData\KeyVMS\eidscanner\src\EidAgent\bin\Release\net8.0\win-x64\publish\aspnetcorev2_inprocess.dll
+C:\ProgramData\KeyVMS\eidscanner\src\EidAgent\bin\Release\net8.0\win-x64\publish\EidAgent.exe
