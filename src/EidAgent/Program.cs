@@ -30,10 +30,14 @@ builder.Host.UseSerilog((context, services, loggerConfiguration) =>
         .WriteTo.File(
             path: logPath,
             rollingInterval: RollingInterval.Day,
-            retainedFileCountLimit: 14)
-        .WriteTo.EventLog(
+            retainedFileCountLimit: 14);
+
+    if (OperatingSystem.IsWindows())
+    {
+        loggerConfiguration.WriteTo.EventLog(
             source: "KeyVMS.EidAgent",
             manageEventSource: true);
+    }
 });
 
 builder.Services.Configure<AgentOptions>(builder.Configuration.GetSection(AgentOptions.SectionName));
