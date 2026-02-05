@@ -1,0 +1,6 @@
+C:\Users\ajay\OneDrive - Key Information Technology\Documents\Development\KeyVMS\eidaplugin\eidscanner\src\EidAgent\obj\Debug\net8.0\win-x64\EidAgent.csproj.AssemblyReference.cache
+C:\Users\ajay\OneDrive - Key Information Technology\Documents\Development\KeyVMS\eidaplugin\eidscanner\src\EidAgent\obj\Debug\net8.0\win-x64\EidAgent.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ajay\OneDrive - Key Information Technology\Documents\Development\KeyVMS\eidaplugin\eidscanner\src\EidAgent\obj\Debug\net8.0\win-x64\EidAgent.AssemblyInfoInputs.cache
+C:\Users\ajay\OneDrive - Key Information Technology\Documents\Development\KeyVMS\eidaplugin\eidscanner\src\EidAgent\obj\Debug\net8.0\win-x64\EidAgent.AssemblyInfo.cs
+C:\Users\ajay\OneDrive - Key Information Technology\Documents\Development\KeyVMS\eidaplugin\eidscanner\src\EidAgent\obj\Debug\net8.0\win-x64\EidAgent.csproj.CoreCompileInputs.cache
+C:\Users\ajay\OneDrive - Key Information Technology\Documents\Development\KeyVMS\eidaplugin\eidscanner\src\EidAgent\obj\Debug\net8.0\win-x64\EidAgent.sourcelink.json
