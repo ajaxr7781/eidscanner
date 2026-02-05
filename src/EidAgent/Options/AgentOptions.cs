@@ -15,6 +15,4 @@ public sealed class AgentOptions
     public string IcaConfigPath { get; set; } = "config_ap";
 
     public string IcaPreferredReaderName { get; set; } = string.Empty;
-
-    public bool ValidateSdkResponseIntegrity { get; set; } = false;
 }

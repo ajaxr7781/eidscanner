@@ -51,8 +51,7 @@ public sealed class IcaEidReader : IEidReader
             cancellationToken.ThrowIfCancellationRequested();
             var cardData = _sdkClient.ReadCard();
 
-            if (_agentOptions.ValidateSdkResponseIntegrity &&
-                !string.IsNullOrWhiteSpace(cardData.RawSignedResponseXml) &&
+            if (!string.IsNullOrWhiteSpace(cardData.RawSignedResponseXml) &&
                 !string.IsNullOrWhiteSpace(cardData.RequestId))
             {
                 var hasValidRequest = IcaSdkIntegrationHelpers.CompareRequestId(
